@@ -63,16 +63,105 @@ spec:
 ```bash
 kubectl apply -f letsencrypt-prod.yaml
 ```
+### 7. **Opcional: ClusterIssuer de Staging (para testes)**
+```bash
+nano letsencrypt-staging.yaml
+```
+```yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: SEU_EMAIL@example.com
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    solvers:
+    - http01:
+        ingress:
+          class: traefik
+```
+```bash
+kubectl apply -f letsencrypt-staging.yaml
+```
 
 ### 8. **Configurar DNS no Cloudflare**
 - Tipo A: `deltasofth.cloud` → `164.92.97.238` (proxy desativado ☁️)
 - CNAME: `www` → `deltasofth.cloud`
 
 ### 9. **Deploy Hello World (teste)**
+
+*Arquivo*
 ```bash
 nano hello-world.yaml
 ```
-*(arquivo completo do exemplo anterior)*
+```yaml
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: hello
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hello-world
+  namespace: hello
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hello-world
+  template:
+    metadata:
+      labels:
+        app: hello-world
+    spec:
+      containers:
+      - name: hello
+        image: nginxdemos/hello
+        ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: hello-world
+  namespace: hello
+spec:
+  selector:
+    app: hello-world
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: hello-world
+  namespace: hello
+  annotations:
+    cert-manager.io/cluster-issuer: letsencrypt-staging
+    traefik.ingress.kubernetes.io/router.entrypoints: web,websecure
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: deltasofth.cloud
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: hello-world
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - deltasofth.cloud
+    secretName: hello-world-tls
+```
 ```bash
 kubectl apply -f hello-world.yaml
 ```
