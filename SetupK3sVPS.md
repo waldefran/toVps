@@ -175,6 +175,11 @@ kubectl get ingress -A
 **Resultado:** Site funcionando em `http://deltasofth.cloud` com SSL automático via Let's Encrypt.
 
 ---
+Add environment → Edge Agent Standard → Kubernetes
+Preencha:
+
+Name: Azure-Worker
+Portainer API server URL: https://164.92.97.238:30779 ⚠️ IMPORTANTE: Use o IP, não o domínio!
 
 **Stack instalada:**
 - K3s (Kubernetes)
